@@ -1,0 +1,90 @@
+version: 2.1
+
+# ── Orbs ─────────────────────────────────────────────────────────────────────
+orbs:
+  python: circleci/python@2.1.1
+
+# ── Parameters ───────────────────────────────────────────────────────────────
+parameters:
+  TEST_ENV:
+    type: enum
+    enum: ["dev", "stg"]
+    default: "dev"
+
+# ── Commands ─────────────────────────────────────────────────────────────────
+commands:
+
+  create_env_file:
+    description: "Parse the JSON envar matching TEST_ENV and write the .env file"
+    steps:
+      - run:
+          name: Parse JSON env config and write .env file
+          command: |
+            # Pick the right JSON blob based on TEST_ENV
+            if [ "<< pipeline.parameters.TEST_ENV >>" = "dev" ]; then
+              ENV_JSON="${DEV_ENV}"
+              ENV_FILE=".env.dev"
+              echo "ENV=dev" >> $ENV_FILE
+            else
+              ENV_JSON="${STG_ENV}"
+              ENV_FILE=".env.stg"
+              echo "ENV=stg" >> $ENV_FILE
+            fi
+
+            # Parse each key-value from the JSON blob and write to the .env file
+            # Uses python (pre-installed on CircleCI) to safely parse JSON
+            echo "$ENV_JSON" | python3 -c "
+            import json, sys
+            data = json.load(sys.stdin)
+            for key, value in data.items():
+                print(f'{key}={value}')
+            " >> $ENV_FILE
+
+            echo "✅ $ENV_FILE created:"
+            cat $ENV_FILE
+
+  store_test_reports:
+    description: "Upload HTML report and screenshots as artifacts"
+    steps:
+      - store_artifacts:
+          path: reports/report.html
+          destination: test-report.html
+      - store_artifacts:
+          path: reports/screenshots
+          destination: screenshots
+
+# ── Jobs ─────────────────────────────────────────────────────────────────────
+jobs:
+
+  run-playwright-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: medium
+
+    steps:
+      - checkout
+
+      - create_env_file
+
+      - run:
+          name: Build Docker image
+          command: docker compose build
+
+      - run:
+          name: Run Playwright tests (ENV = << pipeline.parameters.TEST_ENV >>)
+          command: |
+            if [ "<< pipeline.parameters.TEST_ENV >>" = "dev" ]; then
+              docker compose run --rm playwright-dev
+            else
+              docker compose run --rm playwright-stg
+            fi
+
+      - store_test_reports
+
+# ── Workflows ─────────────────────────────────────────────────────────────────
+workflows:
+
+  playwright-tests:
+    jobs:
+      - run-playwright-tests:
+          context: playwright-contexts   # single context holding DEV_ENV and STG_ENV
