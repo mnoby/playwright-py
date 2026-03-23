@@ -1,0 +1,39 @@
+# .github/workflows/playwright.yml
+name: Playwright Tests
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+    branches: [development, main]
+
+jobs:
+
+  test-dev:
+    name: Run Tests (dev)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env.dev
+        run: |
+          echo "ENV=dev" >> .env.dev
+          echo "HEADLESS=true" >> .env.dev
+          echo "SLOW_MO=0" >> .env.dev
+          echo "TIMEOUT=30000" >> .env.dev
+          echo "RETRIES=1" >> .env.dev
+
+      - name: Build Docker image
+        run: docker compose build
+
+      - name: Run tests
+        run: docker compose run --rm playwright-dev
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        if: always()   # upload even if tests fail
+        with:
+          name: test-report-dev
+          path: reports/
