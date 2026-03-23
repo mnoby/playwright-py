@@ -24,10 +24,12 @@ commands:
             if [ "<< pipeline.parameters.TEST_ENV >>" = "dev" ]; then
               ENV_JSON="${DEV_ENV}"
               ENV_FILE=".env.dev"
+              echo "ENVAR IS ${DEV_ENV}"
               echo "ENV=dev" >> $ENV_FILE
             else
               ENV_JSON="${STG_ENV}"
               ENV_FILE=".env.stg"
+              echo "ENVAR IS ${STG_ENV}"
               echo "ENV=stg" >> $ENV_FILE
             fi
 
