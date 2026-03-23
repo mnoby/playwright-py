@@ -1,0 +1,25 @@
+version: "3.9"
+
+# ── Shared base ──────────────────────────────────────────────────────────
+x-playwright-base: &playwright-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  volumes:
+    - ./reports:/app/reports        # persist test reports on host
+  shm_size: "2gb"                   # required for Chromium in Docker
+
+# ── Services ─────────────────────────────────────────────────────────────
+services:
+
+  playwright-dev:
+    <<: *playwright-base
+    container_name: playwright-dev
+    env_file: .env.dev
+    command: ["--env", "dev"]
+
+  playwright-stg:
+    <<: *playwright-base
+    container_name: playwright-stg
+    env_file: .env.stg
+    command: ["--env", "stg"]

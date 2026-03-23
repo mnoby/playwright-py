@@ -1,27 +1,32 @@
 import json
-from socket import timeout
-from turtle import home
-from playwright.sync_api import Page, expect
+
+import pytest
+from playwright.sync_api import Page
+
+from config.environments import EnvironmentConfig
 from pages.reqres_home_page import HomePage
 
-payload = '{"title": "Lorem Ipsum", "completed": false}'
-data = json.loads(payload)
+PAYLOAD = '{"title": "Lorem Ipsum", "completed": false}'
 
 
-def test_hit_post_request(page: Page):
-    home_page = HomePage(page)
-    page.goto("https://reqres.in/")
+class TestReqresHomePage:
 
-    # Verify the Application is ready.
-    home_page.is_page_and_API_ready()
-    
-    # Click POST request button
-    home_page.click_post_button("active")
+    def test_hit_post_request(self, page: Page, env_config: EnvironmentConfig):
+        home_page = HomePage(page, env_config)
 
-    # Input the payload
-    home_page.send_post_request(payload) 
-    page.wait_for_timeout(20000)
+        print(f"\n🌍  Environment : [{env_config.name.upper()}]")
+        print(f"🔗  Base URL    : {env_config.base_url}")
+        # Navigate to the site (uses env base_url automatically)
+        home_page.open()
 
-    # Assert the Response
-    home_page.is_response_ok("201 Created", payload)
+        # Verify the application is ready
+        home_page.is_page_and_API_ready()
 
+        # Click POST request button
+        home_page.click_post_button("active")
+
+        # Input the payload
+        home_page.send_post_request(PAYLOAD)
+
+        # Assert the response
+        home_page.is_response_ok("201 Created", PAYLOAD)
