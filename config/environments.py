@@ -13,6 +13,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
+from pyee import base
+
 
 @dataclass
 class BrowserConfig:
@@ -27,7 +29,7 @@ class BrowserConfig:
 @dataclass
 class EnvironmentConfig:
     name: str
-    base_url: str
+    base_url: str = os.getenv("BASE_URL", "https://reqres.in")
     browser: BrowserConfig = field(default_factory=BrowserConfig)
     retries: int = 1
     screenshot_on_failure: bool = True
@@ -38,7 +40,6 @@ class EnvironmentConfig:
 _CONFIGS: dict[str, EnvironmentConfig] = {
     "dev": EnvironmentConfig(
         name="dev",
-        base_url=os.getenv("DEV_BASE_URL", "https://reqres.in"),
         browser=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
             slow_mo=int(os.getenv("SLOW_MO", "0")),
@@ -50,7 +51,6 @@ _CONFIGS: dict[str, EnvironmentConfig] = {
     ),
     "stg": EnvironmentConfig(
         name="stg",
-        base_url=os.getenv("STG_BASE_URL", "https://reqres.in"),
         browser=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
             slow_mo=int(os.getenv("SLOW_MO", "0")),

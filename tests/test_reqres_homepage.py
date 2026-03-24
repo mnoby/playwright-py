@@ -14,8 +14,6 @@ class TestReqresHomePage:
     def test_hit_post_request(self, page: Page, env_config: EnvironmentConfig):
         home_page = HomePage(page, env_config)
 
-        print(f"\n🌍  Environment : [{env_config.name.upper()}]")
-        print(f"🔗  Base URL    : {env_config.base_url}")
         # Navigate to the site (uses env base_url automatically)
         home_page.open()
 
@@ -30,3 +28,4 @@ class TestReqresHomePage:
 
         # Assert the response
         home_page.is_response_ok("201 Created", PAYLOAD)
+        print("✅ POST request successful with expected response.")

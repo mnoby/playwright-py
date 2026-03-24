@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ── Shared base ──────────────────────────────────────────────────────────
 x-playwright-base: &playwright-base
   build:

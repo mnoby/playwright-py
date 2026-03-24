@@ -24,7 +24,6 @@ commands:
             if [ "<< pipeline.parameters.TEST_ENV >>" = "dev" ]; then
               ENV_JSON="${DEV_ENV}"
               ENV_FILE=".env.dev"
-              echo "ENVAR IS ${DEV_ENV}"
               echo "ENV=dev" >> $ENV_FILE
             else
               ENV_JSON="${STG_ENV}"
@@ -89,4 +88,4 @@ workflows:
   playwright-tests:
     jobs:
       - run-playwright-tests:
-          context: playwright-contexts   # single context holding DEV_ENV and STG_ENV
+          context: playwright-contexts   
