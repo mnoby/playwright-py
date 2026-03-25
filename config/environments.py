@@ -29,7 +29,7 @@ class BrowserConfig:
 @dataclass
 class EnvironmentConfig:
     name: str
-    base_url: str = os.getenv("BASE_URL", "https://reqres.in")
+    base_url: str = os.getenv("BASE_URL", "https://reqres.inx")
     browser: BrowserConfig = field(default_factory=BrowserConfig)
     retries: int = 1
     screenshot_on_failure: bool = True
@@ -50,7 +50,7 @@ _CONFIGS: dict[str, EnvironmentConfig] = {
         tracing="retain-on-failure",
     ),
     "stg": EnvironmentConfig(
-        name="stg",
+        name="stagging",
         browser=BrowserConfig(
             headless=os.getenv("HEADLESS", "true").lower() == "true",
             slow_mo=int(os.getenv("SLOW_MO", "0")),

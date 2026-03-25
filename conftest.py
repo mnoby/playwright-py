@@ -8,7 +8,10 @@ Usage:
 """
 from __future__ import annotations
 
+import os
 import pathlib
+import shutil
+from datetime import datetime
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
@@ -26,7 +29,19 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Target environment: dev | stg  (overrides ENV env-var, default: dev)",
     )
 
-
+# ── Clear stale report at session start ─────────────────────────────────────
+ 
+def pytest_configure(config: pytest.Config) -> None:
+    """
+    Delete report.html at the START of every session so pytest-html
+    always writes a fresh file — preventing previous results bleeding
+    into the current run's report.
+    """
+    stale_report = pathlib.Path("reports/report.html")
+    if stale_report.exists():
+        stale_report.unlink()
+        print(f"\n🗑️   Cleared stale report: {stale_report}")
+        
 # ── Session-scoped config ───────────────────────────────────────────────────
 
 @pytest.fixture(scope="session")
@@ -121,3 +136,54 @@ def pytest_runtest_makereport(item, call):
             safe_name = item.nodeid.replace("/", "_").replace("::", "__")
             pg.screenshot(path=str(shot_dir / f"{safe_name}.png"), full_page=True)
             print(f"\n📸  Screenshot → reports/screenshots/{safe_name}.png")
+
+
+# ── Dynamic report naming ────────────────────────────────────────────────────
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """
+    After all tests finish:
+      1. Find report.html using rootdir as the base
+      2. Rename → report_<YYYYMMDD_HHMMSS>_<env>_<passed|failed>.html
+      3. Write .last_report marker with the final filename
+
+    NOTE: We resolve the path here in sessionfinish (not in configure)
+    because addopts from pytests.ini are fully loaded by this point.
+    """
+    # ── Resolve report path ───────────────────────────────────────────────
+    # Read from --html option (set via addopts in pytests.ini)
+    html_option = session.config.getoption("--html", default=None)
+
+    if not html_option:
+        print("\n⚠️   --html option not set. Skipping report rename.")
+        return
+
+    # Resolve relative to rootdir (project root where pytests.ini lives)
+    html_path = pathlib.Path(html_option)
+    if not html_path.is_absolute():
+        html_path = pathlib.Path(str(session.config.rootdir)) / html_path
+    html_path = html_path.resolve()
+
+    if not html_path.exists():
+        print(f"\n⚠️   Report not found at: {html_path}")
+        print("     Hint: check --html path in pytests.ini matches reports/ folder")
+        return
+
+    # ── Build new filename ────────────────────────────────────────────────
+    env_name = (
+        session.config.getoption("--env", default=None)
+        or os.getenv("ENV", "dev")
+    ).lower()
+
+    result    = "passed" if exitstatus == 0 else "failed"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    new_name  = f"report_{timestamp}_{env_name}_{result}.html"
+    dst       = html_path.parent / new_name
+
+    # ── Move (rename) the report ──────────────────────────────────────────
+    shutil.move(str(html_path), str(dst))
+    print(f"\n📄  Report saved → {dst}")
+
+    # ── Write marker ──────────────────────────────────────────────────────
+    marker = html_path.parent / ".last_report"
+    marker.write_text(new_name)
